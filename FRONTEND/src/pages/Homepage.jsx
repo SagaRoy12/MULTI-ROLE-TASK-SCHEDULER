@@ -1,5 +1,5 @@
 // src/pages/HomePage.jsx
-import RegisterButton from "../components/registerButton";
+import RegisterButton from "../components/RegisterButton"
 import AdminLoginButton from "../components/AdminLoginButton";  
 import { Link } from "@tanstack/react-router";
 
