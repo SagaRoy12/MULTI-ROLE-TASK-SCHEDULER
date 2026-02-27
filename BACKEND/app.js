@@ -7,6 +7,8 @@ import cookieParser from 'cookie-parser';
 import connectDB from "./conf/dbConnection.conf.js"
 import adminRoute from "./routes/admin.route.js";
 import userRoute from './routes/user.route.js';
+import swaggerUi from "swagger-ui-express";
+import { swaggerSpec } from "./conf/swagger.conf.js";
 
 const PORT = process.env.PORT || 3000;
 const app = express();
@@ -22,6 +24,7 @@ app.use(cookieParser());
 
 app.use("/api/v1/admin_route", adminRoute);
 app.use("/api/v1/user_route", userRoute);
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 connectDB().then(() => {
     app.listen(PORT, () => {
