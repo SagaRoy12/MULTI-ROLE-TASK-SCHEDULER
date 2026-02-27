@@ -3,6 +3,7 @@ dotenv.config();
 
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import connectDB from "./conf/dbConnection.conf.js"
 import adminRoute from "./routes/admin.route.js";
 import userRoute from './routes/user.route.js';
@@ -17,9 +18,10 @@ app.use(cors({
 }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+app.use(cookieParser());
 
-app.use("/api/v1/admin_route" , adminRoute);
-app.use("/api/v1/user_route" , userRoute);
+app.use("/api/v1/admin_route", adminRoute);
+app.use("/api/v1/user_route", userRoute);
 
 connectDB().then(() => {
     app.listen(PORT, () => {
