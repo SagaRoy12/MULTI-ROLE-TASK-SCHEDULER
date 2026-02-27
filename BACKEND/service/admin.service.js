@@ -1,5 +1,5 @@
 import { createAdminDao, findAdminByEmail_DAO, compareAdminPassword_DAO, seeAllUsersDao, deleteUserDataDao } from "../DAO/admin.dao.js";
-import { signedJsonWebToken } from "../jwt/jwtSign.js"
+import { signedJsonWebToken, signedRefreshToken } from "../jwt/jwtSign.js"
 
 
 export const createAdminService = async (adminData) => {
@@ -35,16 +35,22 @@ export const adminLoginService = async (data) => {
         throw { status: 401, message: 'Invalid credentials' };
     }
 
-    // Creating token with role
+    // Creating tokens with role
     const token = await signedJsonWebToken({
         id: admin._id,
         email: admin.email,
         role: 'admin'
     });
 
-    // Return token and user data
+    const refreshToken = await signedRefreshToken({
+        id: admin._id,
+        role: 'admin'
+    });
+
+    // Return tokens and user data
     return {
         token,
+        refreshToken,
         user: {
             id: admin._id,
             name: admin.name,

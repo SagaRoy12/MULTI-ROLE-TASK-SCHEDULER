@@ -1,6 +1,6 @@
 import { createUserDAO, findUserByEmailDAO, findUserByIdDAO, updateMyProfileDAO } from "../DAO/user.dao.js";
 import { createTaskDAO, getMyTasksDAO, getSingleTaskDAO, updateTaskDAO, deleteTaskDAO } from "../DAO/task.dao.js";
-import { signedJsonWebToken } from "../jwt/jwtSign.js"
+import { signedJsonWebToken, signedRefreshToken } from "../jwt/jwtSign.js"
 import bcrypt from "bcrypt";
 // USER AUTH SERVICE
 
@@ -38,8 +38,15 @@ export const loginUserService = async (loginData) => {
     email: user.email,
     role: user.role
   });
+
+  const refreshToken = await signedRefreshToken({
+    id: user._id,
+    role: user.role
+  });
+
   return {
     token,
+    refreshToken,
     user: {
       id: user._id,
       name: user.name,

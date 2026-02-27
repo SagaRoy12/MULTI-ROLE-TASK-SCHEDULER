@@ -6,6 +6,27 @@ const axiosInstance = axios.create({
   withCredentials: true,
 });
 
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
+const getRefreshEndpoint = () => {
+  const role = localStorage.getItem("role");
+  return role === "admin" 
+    ? "/api/v1/admin_route/refresh_token" 
+    : "/api/v1/user_route/refresh_token";
+};
+
 // Request interceptor — attach correct token based on role
 axiosInstance.interceptors.request.use((config) => {
   const role = localStorage.getItem("role");
@@ -18,41 +39,68 @@ axiosInstance.interceptors.request.use((config) => {
   return config;
 });
 
-// Response interceptor for error handling
+// Response interceptor for error handling and token refresh
 axiosInstance.interceptors.response.use(
   (response) => {
     return response;
   },
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return axiosInstance(originalRequest);
+          })
+          .catch((err) => {
+            return Promise.reject(err);
+          });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        const response = await axiosInstance.post(getRefreshEndpoint());
+        const { role } = response.data;
+        
+        // Store new token (though it's also in cookies now)
+        if (role === "admin") {
+          localStorage.setItem("adminToken", response.data.newAccessToken || "");
+        } else {
+          localStorage.setItem("userToken", response.data.newAccessToken || "");
+        }
+
+        processQueue(null, response.data.newAccessToken);
+        originalRequest.headers.Authorization = `Bearer ${response.data.newAccessToken}`;
+        return axiosInstance(originalRequest);
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+        
+        // Clear tokens and redirect to login
+        localStorage.removeItem("adminToken");
+        localStorage.removeItem("userToken");
+        localStorage.removeItem("role");
+        
+        const role = localStorage.getItem("role");
+        window.location.href = role === "admin" ? "/admin/login" : "/login";
+        
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
+    }
+
     if (error.response) {
-      // Server responded with error status
       const { status, data } = error.response;
       console.error(`API Error ${status}:`, data.message || 'Unknown error');
-
-      switch (status) {
-        case 400:
-          console.error('Bad Request');
-          break;
-        case 401:
-          console.error('Unauthorized');
-          break;
-        case 404:
-          console.error('Not Found');
-          break;
-        case 409:
-          console.error('Conflict');
-          break;
-        case 500:
-          console.error('Internal Server Error');
-          break;
-        default:
-          console.error('Request failed');
-      }
     } else if (error.request) {
-      // Network error
       console.error('Network Error: No response received');
     } else {
-      // Request setup error
       console.error('Request Error:', error.message);
     }
 

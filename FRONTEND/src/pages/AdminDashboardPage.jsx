@@ -1,18 +1,27 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import axiosInstance from "../utility/axiosInstance.js";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("adminToken");
     if (!token) navigate({ to: "/admin/login" });
   }, []);
 
-  const logout = () => {
-    localStorage.removeItem("adminToken");
-    localStorage.removeItem("role");
-    navigate({ to: "/admin/login" });
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      await axiosInstance.post("/api/v1/admin_route/logout_admin");
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      localStorage.removeItem("adminToken");
+      localStorage.removeItem("role");
+      navigate({ to: "/admin/login" });
+    }
   };
 
   return (
@@ -38,10 +47,11 @@ export default function AdminDashboard() {
           </Link>
 
           <button
-            onClick={logout}
-            className="mt-10 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+            className="mt-10 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition disabled:opacity-50"
           >
-            Logout
+            {isLoggingOut ? "Logging out..." : "Logout"}
           </button>
         </nav>
       </aside>

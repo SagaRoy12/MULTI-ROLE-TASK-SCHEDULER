@@ -11,10 +11,12 @@ import {
   getMyTasksController,
   getSingleTaskController,
   updateTaskController,
-  deleteTaskController
+  deleteTaskController,
+  logoutUserController
 } from "../controllers/user.controller.js";
 
-import authMiddleware from "../middlewares/auth.middleware.js";
+import authMiddleware, { refreshAccessToken } from "../middlewares/auth.middleware.js";
+import { COOKIE_NAMES } from "../conf/cookieNames.conf.js";
 
 const router = Router();
 
@@ -53,6 +55,26 @@ router.put("/task/:id", authMiddleware, updateTaskController);
 
 // Delete a task (only if owned by user)
 router.delete("/task/:id", authMiddleware, deleteTaskController);
+
+// Logout user
+router.post("/logout_user", authMiddleware, logoutUserController);
+
+// User refresh token route
+router.post("/refresh_token", refreshAccessToken, (req, res) => {
+  res.cookie(COOKIE_NAMES.USER_ACCESS_TOKEN, req.newAccessToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 60 * 60 * 1000, // 1 hour
+    path: "/",
+  });
+  return res.status(200).json({
+    success: true,
+    message: "Token refreshed successfully",
+    newAccessToken: req.newAccessToken,
+    role: req.user.role,
+  });
+});
 
 
 export default router;

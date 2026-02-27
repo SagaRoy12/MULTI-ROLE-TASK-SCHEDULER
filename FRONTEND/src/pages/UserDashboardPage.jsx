@@ -22,6 +22,7 @@ export default function UserDashboardPage() {
   const [form, setForm] = useState(emptyForm);
   const [editingTask, setEditingTask] = useState(null);
   const [formError, setFormError] = useState(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // fetch profile
   const { data: profile } = useQuery({
@@ -106,9 +107,17 @@ export default function UserDashboardPage() {
     setActiveSection("tasks");
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("role");
-    window.location.href = "/login";
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      await axiosInstance.post("/api/v1/user_route/logout_user");
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      localStorage.removeItem("userToken");
+      localStorage.removeItem("role");
+      window.location.href = "/login";
+    }
   };
 
   return (
@@ -142,9 +151,10 @@ export default function UserDashboardPage() {
         <div className="mt-auto">
           <button
             onClick={handleLogout}
-            className="w-full py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm transition"
+            disabled={isLoggingOut}
+            className="w-full py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm transition disabled:opacity-50"
           >
-            Logout
+            {isLoggingOut ? "Logging out..." : "Logout"}
           </button>
         </div>
       </aside>

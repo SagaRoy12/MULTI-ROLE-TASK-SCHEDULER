@@ -1,6 +1,7 @@
 
 import { createUserService, loginUserService, getMyProfileService, updateMyProfileService, createTaskService, getMyTasksService, getSingleTaskService, updateTaskService, deleteTaskService } from "../service/user.service.js"
 import { cookieOptions } from "../conf/cookies.conf.js";
+import { COOKIE_NAMES, clearCookieOptions, refreshTokenCookieOptions } from "../conf/cookieNames.conf.js";
 
 // Register User
 export const createUserController = async (req, res) => {
@@ -24,9 +25,10 @@ export const loginUserController = async (req, res) => {
   try {
     const loginData = req.body;
     const loginResult = await loginUserService(loginData);
-    const { token, user } = loginResult;
+    const { token, refreshToken, user } = loginResult;
    
-    res.cookie("USERAccesstoken", token, cookieOptions);
+    res.cookie(COOKIE_NAMES.USER_ACCESS_TOKEN, token, cookieOptions);
+    res.cookie(COOKIE_NAMES.USER_REFRESH_TOKEN, refreshToken, refreshTokenCookieOptions);
     return res.status(200).json({
       message: "User logged in successfully",
       user: loginResult
@@ -164,13 +166,7 @@ export const updateTaskController = async (req, res) => {
       message: error.message,
     });
   }
-};
-
-
-
-
-// Delete Task
-
+};// Delete Task
 export const deleteTaskController = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -185,6 +181,23 @@ export const deleteTaskController = async (req, res) => {
     return res.status(error.status || 400).json({
       success: false,
       message: error.message,
+    });
+  }
+};
+
+// Logout User
+export const logoutUserController = async (req, res) => {
+  try {
+    res.clearCookie(COOKIE_NAMES.USER_ACCESS_TOKEN, clearCookieOptions);
+    res.clearCookie(COOKIE_NAMES.USER_REFRESH_TOKEN, clearCookieOptions);
+    return res.status(200).json({
+      success: true,
+      message: "User logged out successfully",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Error during logout",
     });
   }
 };
